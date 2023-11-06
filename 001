@@ -1,0 +1,92 @@
+function sendLineNotify() {
+   
+    var form = FormApp.openById('XXX'); 
+    var tokens = ['XXX']; 
+    var form_res = form.getResponses()
+    var formResponse = form_res[form_res.length - 1];
+    var itemResponses = formResponse.getItemResponses();
+    var items = form.getItems();
+    var all_message = form.getTitle() + '\n';
+    var all_message_resend = '';
+    var all_message_send = '';
+    var image_id = [];
+    var IMAGE_URL = [];
+    var imgThumbnail = [];
+    var imgFullsize =  [];
+    var file_upload_num = 0;
+     
+    for (var i = 0; i < itemResponses.length; i++) 
+    {
+      if (itemResponses[i].getItem().getType() == "GRID") 
+      {
+        var mrow = items[i].asGridItem().getRows();
+
+        var itemResponse_val = itemResponses[i].getResponse().toString().split(",")
+         
+        all_message += (i+1) + ') ' + itemResponses[i].getItem().getTitle() + ' : ' + '\n';
+         
+        for (var j = 0; j < mrow.length; j++)
+        {
+          all_message += '   - ' + mrow[j] + ' : ' + itemResponse_val[j] + '\n';
+        }
+      }
+      else if (itemResponses[i].getItem().getType() == "FILE_UPLOAD")
+      {
+        image_id[file_upload_num] = itemResponses[i].getResponse()
+        IMAGE_URL[file_upload_num] = 'https://drive.google.com/uc?export=view&id='+ image_id[file_upload_num];
+        imgThumbnail[file_upload_num] = IMAGE_URL[file_upload_num]; 
+        imgFullsize[file_upload_num] = IMAGE_URL[file_upload_num]; 
+        
+        all_message += (i+1) + ') ' + itemResponses[i].getItem().getTitle() + ' : ' + IMAGE_URL[file_upload_num] + '\n';
+        file_upload_num += 1;
+      }
+      else
+      {
+        all_message += (i+1) + ') ' + itemResponses[i].getItem().getTitle() + ' : ' + itemResponses[i].getResponse() + '\n';
+      }
+    }
+     
+    all_message_send = all_message;
+    
+    for (var k = 0; k < tokens.length; k++) {
+      if ( file_upload_num > 0 ) 
+      {
+        for (var m = 0; m < file_upload_num; m++ )
+        {
+          if ( m == 0 )
+          {
+            all_message_send = all_message;
+          }
+          else if ( m > 0 ) 
+          {
+            all_message_resend = 'Picture: ' + (m+1);
+            all_message_send = all_message_resend;
+          }
+          var formData = {
+            'message' : all_message_send,
+            'imageThumbnail': imgThumbnail[m],'imageFullsize' : imgFullsize[m],   
+          }
+           
+          var options = {
+            "method" : "post",
+            "payload" : formData,
+            "headers" : {"Authorization" : "Bearer " + tokens[k]}
+          };
+          UrlFetchApp.fetch("https://notify-api.line.me/api/notify", options);
+        }
+      }
+      else {
+        var formData = {
+          'message' : all_message_send,  
+        }
+         
+        var options = {
+          "method" : "post",
+          "payload" : formData,
+          "headers" : {"Authorization" : "Bearer " + tokens[k]}
+        };
+        UrlFetchApp.fetch("https://notify-api.line.me/api/notify", options);
+      }
+    }
+  }
+
